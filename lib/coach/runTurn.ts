@@ -23,6 +23,37 @@ function resolveInjectedSkills(slugs: string[]): Skill[] {
   return slugs.map((s) => map.get(s)).filter((s): s is Skill => Boolean(s));
 }
 
+function normalizeSkillReference(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function skillReferenceAliases(skill: Skill): string[] {
+  return [
+    skill.slug,
+    skill.slug.replaceAll("-", " "),
+    skill.title,
+    normalizeSkillReference(skill.title),
+  ];
+}
+
+function findExplicitSkillReferences(text: string, skills: Skill[]): string[] {
+  const normalizedText = normalizeSkillReference(text);
+  const rawText = text.toLowerCase();
+
+  return skills
+    .filter((skill) =>
+      skillReferenceAliases(skill).some((alias) => {
+        const normalizedAlias = normalizeSkillReference(alias);
+        return (
+          rawText.includes(alias.toLowerCase()) ||
+          (normalizedAlias.length > 0 &&
+            normalizedText.includes(normalizedAlias))
+        );
+      }),
+    )
+    .map((skill) => skill.slug);
+}
+
 export async function runCoachTurn(params: {
   db: CoachDb;
   sessionId: string;
@@ -73,8 +104,9 @@ export async function runCoachTurn(params: {
   const tail = convo.slice(-20);
 
   const slugs = session.relevantSkillSlugs ?? [];
-  const injected = resolveInjectedSkills(slugs);
   const allSkills = loadAllSkills();
+  const explicitSlugs = findExplicitSkillReferences(trimmed, allSkills);
+  const injected = resolveInjectedSkills([...new Set([...slugs, ...explicitSlugs])]);
 
   let system = buildSystemPrompt({
     skillIndex: buildSkillIndex(allSkills),

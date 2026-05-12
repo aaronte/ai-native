@@ -20,7 +20,7 @@ import {
 } from "../../lib/coach/botSession";
 import { maybeCompressHistory } from "../../lib/coach/memory";
 import { runCoachTurn } from "../../lib/coach/runTurn";
-import { chunkDiscordMessage } from "../../lib/discord/chunk";
+import { renderDiscordReplies } from "../../lib/discord/renderReply";
 import { getBotDb } from "../../lib/db/client";
 import { messages, sessions } from "../../lib/db/schema";
 import { skillsBySlug } from "../../lib/skills/loader";
@@ -193,9 +193,9 @@ client.on(Events.MessageCreate, (message) => {
         discordUserId: message.author.id,
         userContent: text,
       });
-      const parts = chunkDiscordMessage(reply);
+      const parts = renderDiscordReplies(reply);
       for (let i = 0; i < parts.length; i++) {
-        const chunk = parts[i]!;
+        const payload = parts[i]!;
         if (i > 0) {
           try {
             if (message.channel.isDMBased()) {
@@ -205,7 +205,7 @@ client.on(Events.MessageCreate, (message) => {
             /* ignore */
           }
         }
-        await message.reply(chunk);
+        await message.reply(payload);
       }
     } catch (e) {
       console.error(e);
