@@ -1,0 +1,28 @@
+---
+description: Keep commit messages brief, typed, and why-focused
+alwaysApply: true
+---
+
+# Commit Message Conventions
+
+Use concise commit messages that are easy to scan in history and easy to review.
+
+## Required format
+
+`(<type>): <short summary>`
+
+Examples:
+- `(feat): add onboarding progress indicator`
+- `(refactor): simplify analytics event mapper`
+- `(test): cover empty-state rendering for dashboard`
+- `(chore): update Storybook to latest version`
+- `(style): align button spacing in settings panel`
+- `(docs): clarify local development setup`
+
+## Rules
+
+- Start every commit subject with a type prefix, e.g. `(feat):`, `(refactor):`, `(test):`, `(chore):`, `(style):`, `(docs):`.
+- Keep the subject brief and specific (typically under ~72 characters).
+- Explain the **why** in the commit body when it is not obvious from the subject.
+- Prefer 1-2 short body lines focused on intent, impact, or problem solved.
+- Avoid vague subjects like `update stuff`, `fix things`, or `changes`.
