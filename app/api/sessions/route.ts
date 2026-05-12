@@ -6,6 +6,8 @@ import { sessions } from "@/lib/db/schema";
 import { getDiscordAuthorizeUrl } from "@/lib/discord/oauth";
 import { pickTopSkillSlugs } from "@/lib/skills/router";
 
+export const runtime = "nodejs";
+
 const bodySchema = z.object({
   problem: z.string().min(20).max(20000),
 });

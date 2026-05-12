@@ -5,6 +5,7 @@ import { getDb } from "@/lib/db/client";
 import { sessions } from "@/lib/db/schema";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 function appOrigin(): string {
   const u = process.env.APP_URL?.replace(/\/$/, "");
