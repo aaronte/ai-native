@@ -5,7 +5,7 @@ summary: Honest, frequent feedback norms across peers, managers, and cross-funct
 keywords:
   - feedback
   - culture
-  - 1:1
+  - "1:1"
   - performance
   - psychological safety
 ---
