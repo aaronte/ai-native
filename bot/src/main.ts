@@ -9,10 +9,12 @@ import {
 } from "discord.js";
 import { eq } from "drizzle-orm";
 
+import { maybeCompressHistory } from "../../lib/coach/memory";
 import { runCoachTurn } from "../../lib/coach/runTurn";
 import { chunkDiscordMessage } from "../../lib/discord/chunk";
 import { getBotDb } from "../../lib/db/client";
-import { sessions } from "../../lib/db/schema";
+import { messages, sessions } from "../../lib/db/schema";
+import { skillsBySlug } from "../../lib/skills/loader";
 
 const appUrl = process.env.APP_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
 
@@ -46,6 +48,68 @@ client.once(Events.ClientReady, (c) => {
   console.log(`Ready as ${c.user.tag}`);
 });
 
+client.on(Events.InteractionCreate, async (interaction) => {
+  if (!interaction.isChatInputCommand()) return;
+
+  const db = getBotDb();
+  const userId = interaction.user.id;
+
+  if (interaction.commandName === "skills") {
+    const [session] = await db
+      .select()
+      .from(sessions)
+      .where(eq(sessions.discordUserId, userId))
+      .limit(1);
+
+    if (!session) {
+      await interaction.reply({
+        content: `No session linked yet. Describe your situation on **${appUrl}** and complete Discord install first.`,
+        ephemeral: true,
+      });
+      return;
+    }
+
+    const map = skillsBySlug();
+    const slugs = session.relevantSkillSlugs ?? [];
+    const lines = slugs.map((slug) => {
+      const sk = map.get(slug);
+      return sk ? `• **${sk.title}** (\`${slug}\`)` : `• \`${slug}\``;
+    });
+
+    await interaction.reply({
+      content: lines.length
+        ? `Playbooks prioritized for your session:\n${lines.join("\n")}`
+        : "No skill slugs stored on this session.",
+      ephemeral: true,
+    });
+    return;
+  }
+
+  if (interaction.commandName === "reset") {
+    const [session] = await db
+      .select()
+      .from(sessions)
+      .where(eq(sessions.discordUserId, userId))
+      .limit(1);
+
+    if (!session) {
+      await interaction.reply({
+        content: `No session linked yet. Start at **${appUrl}**.`,
+        ephemeral: true,
+      });
+      return;
+    }
+
+    await db.delete(messages).where(eq(messages.sessionId, session.id));
+
+    await interaction.reply({
+      content:
+        "Cleared your DM history with the coach. Your seeded problem and skill picks are unchanged—send a new message to continue.",
+      ephemeral: true,
+    });
+  }
+});
+
 client.on(Events.MessageCreate, (message) => {
   if (message.author.bot) return;
   if (message.channel.type !== ChannelType.DM) return;
@@ -65,6 +129,12 @@ client.on(Events.MessageCreate, (message) => {
         `Hi — I don’t have a session for your Discord account yet. Open **${appUrl}**, describe your team challenge, and complete the install flow. Then DM me again here.`,
       );
       return;
+    }
+
+    try {
+      await maybeCompressHistory(db, session.id);
+    } catch (e) {
+      console.error("memory compression failed", e);
     }
 
     try {
