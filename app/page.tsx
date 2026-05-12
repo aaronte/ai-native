@@ -1,6 +1,22 @@
 import { ProblemInput } from "@/components/ProblemInput";
 
-export default function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error: errorParam } = await searchParams;
+  const initialError =
+    typeof errorParam === "string"
+      ? (() => {
+          try {
+            return decodeURIComponent(errorParam);
+          } catch {
+            return errorParam;
+          }
+        })()
+      : undefined;
+
   return (
     <div className="relative flex min-h-screen flex-col items-center bg-gradient-to-b from-zinc-950 via-zinc-900 to-zinc-950 px-6 py-16 text-zinc-100">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(16,185,129,0.12),_transparent_55%)]" />
@@ -18,7 +34,7 @@ export default function HomePage() {
             operational excellence and upskilling.
           </p>
         </header>
-        <ProblemInput />
+        <ProblemInput initialError={initialError} />
       </main>
     </div>
   );

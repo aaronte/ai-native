@@ -2,11 +2,15 @@
 
 import { useCallback, useState } from "react";
 
-export function ProblemInput() {
+export function ProblemInput({
+  initialError,
+}: {
+  initialError?: string;
+}) {
   const [problem, setProblem] = useState("");
   const [busy, setBusy] = useState(false);
   const [listening, setListening] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError ?? null);
 
   const submit = useCallback(async () => {
     setBusy(true);
