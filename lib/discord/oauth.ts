@@ -1,26 +1,63 @@
 /**
- * Builds Discord OAuth2 URL to authorize user install and link Discord identity.
- * Scopes: `identify` (for user id) + `applications.commands` (slash commands on user account).
+ * Guild-install OAuth (authorization code) so we receive `state` back and can
+ * bind Discord user ↔ prefilled session from the web intake form while also
+ * adding the bot to a server.
+ *
+ * @see https://discord.com/developers/docs/topics/oauth2
  */
-export function getDiscordAuthorizeUrl(params: {
-  sessionId: string;
+export function discordGuildInstallAuthorizeUrl(args: {
+  clientId: string;
+  redirectUri: string;
+  state: string;
 }): string {
-  const clientId = process.env.DISCORD_CLIENT_ID;
-  const appUrl = process.env.APP_URL?.replace(/\/$/, "");
-  if (!clientId || !appUrl) {
-    throw new Error("DISCORD_CLIENT_ID and APP_URL must be set");
-  }
-
-  const redirectUri = `${appUrl}/api/discord/callback`;
-
-  const q = new URLSearchParams({
-    client_id: clientId,
+  const params = new URLSearchParams({
+    client_id: args.clientId,
+    redirect_uri: args.redirectUri,
     response_type: "code",
-    redirect_uri: redirectUri,
-    scope: "identify applications.commands",
-    state: params.sessionId,
-    prompt: "consent",
+    scope: "identify bot applications.commands",
+    state: args.state,
+    integration_type: "0",
+    permissions: "2048",
+  });
+  return `https://discord.com/oauth2/authorize?${params.toString()}`;
+}
+
+export async function exchangeDiscordOAuthCode(args: {
+  clientId: string;
+  clientSecret: string;
+  code: string;
+  redirectUri: string;
+}): Promise<{ access_token: string }> {
+  const body = new URLSearchParams({
+    client_id: args.clientId,
+    client_secret: args.clientSecret,
+    grant_type: "authorization_code",
+    code: args.code,
+    redirect_uri: args.redirectUri,
   });
 
-  return `https://discord.com/oauth2/authorize?${q.toString()}`;
+  const res = await fetch("https://discord.com/api/oauth2/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Discord token exchange failed: ${res.status} ${text}`);
+  }
+
+  return res.json() as Promise<{ access_token: string }>;
+}
+
+export async function fetchDiscordUserId(accessToken: string): Promise<string> {
+  const res = await fetch("https://discord.com/api/users/@me", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Discord @me failed: ${res.status} ${text}`);
+  }
+  const data = (await res.json()) as { id: string };
+  return data.id;
 }

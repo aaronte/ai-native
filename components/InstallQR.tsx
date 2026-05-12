@@ -10,8 +10,8 @@ export function InstallQR({
   return (
     <div className="flex flex-col items-center gap-4 rounded-2xl border border-zinc-800 bg-zinc-950/80 p-6">
       <p className="max-w-xs text-center text-sm text-zinc-400">
-        Scan with your phone to connect Discord and install the coach on your
-        account.
+        Scan with your phone (or tap below). Discord will ask you to authorize;
+        then install the coach on your account with the context you just shared.
       </p>
       <div className="rounded-lg bg-white p-3">
         <QRCodeSVG value={installUrl} size={196} level="M" />
