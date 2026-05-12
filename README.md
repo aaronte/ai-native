@@ -1,5 +1,7 @@
 # AI-native executive coach (Discord-first)
 
+![AI-native demo](public/ai-native-demo.png)
+
 Execs fill a short **take-in form** on the Next.js site; then they scan a **QR code** (Discord OAuth with guild/server install context). After Discord redirects back, their Discord account is **linked** to a prefilled `sessions` row (problem text + playbook picks). They **DM the bot** and coaching continues from that context — **no extra signup**.
 
 Anyone who skips the web flow can still **authorize Discord manually** and **DM with ≥ 20 characters** to seed a session the original way.
