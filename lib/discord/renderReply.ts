@@ -118,26 +118,91 @@ function renderSnapshotEmbed(reply: string): DiscordReplyPayload | null {
   };
 }
 
-function isMarkdownTableSeparator(line: string): boolean {
-  return /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line);
+function normalizeTableDashes(line: string): string {
+  return line.replace(/[\u2013\u2014]/g, "-");
+}
+
+/** Split a pipe table row into cells (GFM-style, outer pipes optional). */
+function splitPipeRow(line: string): string[] {
+  let t = normalizeTableDashes(line.trim());
+  t = t.replace(/\*\*/g, "");
+  if (t.startsWith("|")) t = t.slice(1);
+  if (t.endsWith("|")) t = t.slice(0, -1);
+  return t.split("|").map((c) => c.replace(/`/g, "").trim());
+}
+
+function isSeparatorCells(cells: string[]): boolean {
+  if (cells.length < 2) return false;
+  return cells.every((c) => /^:?-{2,}:?$/.test(c));
+}
+
+function isMarkdownTableSeparatorLine(line: string): boolean {
+  if (!line.includes("|")) return false;
+  const cells = splitPipeRow(line);
+  if (cells.some((c) => c === "")) return false;
+  return isSeparatorCells(cells);
+}
+
+/**
+ * Discord does not render Markdown tables; pipe grids look broken in chat.
+ * Turn pipe tables into short sections: bold row label, then each column on its own line.
+ */
+function pipeTableToDiscord(headerLine: string, bodyLines: string[]): string {
+  const headers = splitPipeRow(headerLine).map(stripMarkdown);
+  if (headers.length < 2) {
+    return ["```", normalizeTableDashes(headerLine), ...bodyLines.map(normalizeTableDashes), "```"].join(
+      "\n",
+    );
+  }
+
+  const blocks: string[] = [];
+  for (const rowLine of bodyLines) {
+    if (isMarkdownTableSeparatorLine(rowLine)) continue;
+    const cells = splitPipeRow(rowLine).map(stripMarkdown);
+    const label = (cells[0] ?? "").trim();
+    if (!label) continue;
+
+    const lines: string[] = [`**${label}**`];
+    for (let col = 1; col < headers.length; col++) {
+      const h = (headers[col] ?? "").trim();
+      if (!h) continue;
+      const v = (cells[col] ?? "").trim();
+      const isScoreCol = /score|rate|rating|\(1\s*[-–]\s*5\)/i.test(h);
+      if (isScoreCol) {
+        lines.push(v ? `${h}: **${v}**` : `_${h}:_ *(add 1–5)*`);
+      } else if (v) {
+        lines.push(v);
+      } else {
+        lines.push(`_${h}:_ —`);
+      }
+    }
+    blocks.push(lines.join("\n"));
+  }
+
+  return blocks.join("\n\n");
 }
 
 function formatMarkdownTables(text: string): string {
-  const lines = text.split("\n");
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
   const out: string[] = [];
   let i = 0;
 
   while (i < lines.length) {
     const line = lines[i]!;
     const next = lines[i + 1];
-    if (line.includes("|") && next && isMarkdownTableSeparator(next)) {
-      const table: string[] = [line, next];
+    if (
+      line.includes("|") &&
+      next &&
+      isMarkdownTableSeparatorLine(next)
+    ) {
+      const header = line;
       i += 2;
+      const body: string[] = [];
       while (i < lines.length && lines[i]!.includes("|")) {
-        table.push(lines[i]!);
+        body.push(lines[i]!);
         i++;
       }
-      out.push("```text", table.map(stripMarkdown).join("\n"), "```");
+      out.push(pipeTableToDiscord(header, body));
       continue;
     }
 
