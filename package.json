@@ -6,7 +6,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 8888",
     "build": "next build",
     "start": "next start --hostname 0.0.0.0",
     "lint": "eslint",
@@ -17,7 +17,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^3.0.76",
+    "@openrouter/ai-sdk-provider": "^2.9.0",
     "ai": "^6.0.177",
     "discord.js": "^14.26.4",
     "dotenv": "^17.4.2",

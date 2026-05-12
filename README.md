@@ -1,7 +1,7 @@
 # AI-native executive coach (Discord + web)
 
 Tech executives describe an org challenge on the web app, install a Discord integration, then get **one-on-one DM coaching** grounded in ~20 playbooks (product, engineering, design, org change).  
-**Stack:** Next.js (Vercel or Railway) · Supabase Postgres + Drizzle · Anthropic Claude · `discord.js` gateway on **Railway**.
+**Stack:** Next.js (Vercel or Railway) · Supabase Postgres + Drizzle · OpenRouter (LLM) · `discord.js` gateway on **Railway**.
 
 ## Monorepo layout
 
@@ -19,7 +19,7 @@ Tech executives describe an org challenge on the web app, install a Discord inte
 - Node **20+**
 - [Discord application](https://discord.com/developers/applications) with a **bot user**
 - [Supabase](https://supabase.com/) project (Postgres)
-- [Anthropic API](https://www.anthropic.com/) key
+- [OpenRouter](https://openrouter.ai/) account and API key (bot-only; models are configured via env)
 
 ## 1. Supabase / database
 
@@ -41,7 +41,7 @@ npm run db:push
 1. **Bot** tab: enable **MESSAGE CONTENT INTENT** (privileged). Copy **token** → `DISCORD_BOT_TOKEN` (bot host only; keep off Vercel if you prefer).  
 2. **OAuth2 → General**: add redirect  
    `https://<your-app-host>/api/discord/callback`  
-   (for local dev e.g. `http://localhost:3000/api/discord/callback`).  
+   (for local dev e.g. `http://localhost:8888/api/discord/callback`; `npm run dev` uses port **8888**).  
 3. Copy **Client ID** → `DISCORD_CLIENT_ID`, **Client Secret** → `DISCORD_CLIENT_SECRET`.  
 4. **Installation**: prefer **User Install** so individuals authorize without a server.  
 5. **Discord Provided Install Link** scopes used in code: `identify`, `applications.commands`.  
@@ -71,9 +71,10 @@ See [`.env.example`](.env.example). Minimum:
 - `APP_URL` – same public URL as the web app  
 - `DATABASE_URL` – Supabase pooler  
 - `DISCORD_BOT_TOKEN`  
-- `ANTHROPIC_API_KEY`  
-- Optional: `ANTHROPIC_COACH_MODEL` (default `claude-sonnet-4-20250514`)  
-- Optional: `ANTHROPIC_SUMMARY_MODEL` for long-thread compression (default Haiku)
+- `OPENROUTER_API_KEY`  
+- Optional: `OPENROUTER_COACH_MODEL` (default `anthropic/claude-sonnet-4.6`)  
+- Optional: `OPENROUTER_SUMMARY_MODEL` for long-thread compression (default `google/gemini-2.5-flash`)  
+- Optional: `OPENROUTER_APP_NAME`, `OPENROUTER_APP_URL` (OpenRouter dashboard attribution; `APP_URL` is used if `OPENROUTER_APP_URL` is unset)
 
 ## 4. Local development
 
@@ -82,6 +83,8 @@ npm install
 npm run db:push
 npm run dev
 ```
+
+The app is at **http://localhost:8888** (`package.json` pins the dev port).
 
 In another terminal (with `.env.local` or env vars loaded):
 

@@ -1,7 +1,10 @@
-/** Discord message content max length */
-export const DISCORD_MAX = 2000;
+/** Max characters per DM; matches Discord message content limit. */
+export const REPLY_CHUNK_CHARS = 2000;
 
-export function chunkDiscordMessage(text: string, maxLen = DISCORD_MAX): string[] {
+export function chunkDiscordMessage(
+  text: string,
+  maxLen = REPLY_CHUNK_CHARS,
+): string[] {
   const trimmed = text.trim();
   if (trimmed.length <= maxLen) return trimmed ? [trimmed] : [];
 

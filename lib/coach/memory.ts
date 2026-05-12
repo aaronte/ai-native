@@ -1,15 +1,16 @@
-import { createAnthropic } from "@ai-sdk/anthropic";
 import { generateText } from "ai";
 import { and, asc, eq, inArray } from "drizzle-orm";
 
 import { messages } from "@/lib/db/schema";
+import {
+  DEFAULT_SUMMARY_MODEL,
+  openRouterIfConfigured,
+} from "@/lib/llm/openrouter";
 
 import type { CoachDb } from "./runTurn";
 
 /** Rough context budget before folding old turns into a summary row. */
 const THRESHOLD_CHARS = 200_000;
-const DEFAULT_SUMMARY_MODEL = "claude-3-5-haiku-20241022";
-
 /**
  * If the active (non-archived) conversation is tall, summarize the oldest half
  * into `role: summary` and archive the folded rows.
@@ -18,8 +19,8 @@ export async function maybeCompressHistory(
   db: CoachDb,
   sessionId: string,
 ): Promise<void> {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) return;
+  const openrouter = openRouterIfConfigured();
+  if (!openrouter) return;
 
   const rows = await db
     .select()
@@ -42,12 +43,11 @@ export async function maybeCompressHistory(
 
   const blob = toFold.map((r) => `${r.role}: ${r.content}`).join("\n\n");
 
-  const anthropic = createAnthropic({ apiKey: key });
   const modelId =
-    process.env.ANTHROPIC_SUMMARY_MODEL ?? DEFAULT_SUMMARY_MODEL;
+    process.env.OPENROUTER_SUMMARY_MODEL ?? DEFAULT_SUMMARY_MODEL;
 
   const { text } = await generateText({
-    model: anthropic(modelId),
+    model: openrouter(modelId),
     system:
       "Compress conversation history into a concise executive coaching brief. Use short bullets: key facts, decisions, open questions, tensions. Max ~1200 words. Preserve names and numbers exactly.",
     prompt: blob,

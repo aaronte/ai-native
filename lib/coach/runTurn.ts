@@ -1,9 +1,12 @@
-import { createAnthropic } from "@ai-sdk/anthropic";
 import { generateText } from "ai";
 import { and, asc, eq } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 import { messages, sessions } from "@/lib/db/schema";
+import {
+  DEFAULT_COACH_MODEL,
+  requireOpenRouter,
+} from "@/lib/llm/openrouter";
 import * as schema from "@/lib/db/schema";
 import {
   buildInjectedSkillsBody,
@@ -14,8 +17,6 @@ import { loadAllSkills, skillsBySlug } from "@/lib/skills/loader";
 import type { Skill } from "@/lib/skills/types";
 
 export type CoachDb = PostgresJsDatabase<typeof schema>;
-
-const DEFAULT_MODEL = "claude-sonnet-4-20250514";
 
 function resolveInjectedSkills(slugs: string[]): Skill[] {
   const map = skillsBySlug();
@@ -32,11 +33,6 @@ export async function runCoachTurn(params: {
   const trimmed = userContent.trim();
   if (!trimmed) {
     throw new Error("Empty message");
-  }
-
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) {
-    throw new Error("ANTHROPIC_API_KEY is not set");
   }
 
   const [session] = await db
@@ -94,11 +90,11 @@ export async function runCoachTurn(params: {
     content: r.content,
   }));
 
-  const anthropic = createAnthropic({ apiKey: key });
-  const modelId = process.env.ANTHROPIC_COACH_MODEL ?? DEFAULT_MODEL;
+  const openrouter = requireOpenRouter();
+  const modelId = process.env.OPENROUTER_COACH_MODEL ?? DEFAULT_COACH_MODEL;
 
   const { text } = await generateText({
-    model: anthropic(modelId),
+    model: openrouter(modelId),
     system,
     messages: coreMessages,
   });

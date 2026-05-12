@@ -16,7 +16,7 @@ import { getBotDb } from "../../lib/db/client";
 import { messages, sessions } from "../../lib/db/schema";
 import { skillsBySlug } from "../../lib/skills/loader";
 
-const appUrl = process.env.APP_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
+const appUrl = process.env.APP_URL?.replace(/\/$/, "") ?? "http://localhost:8888";
 
 const client = new Client({
   intents: [
