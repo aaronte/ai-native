@@ -5,13 +5,8 @@ import { TakeInFlow } from "@/components/TakeInFlow";
 
 function oauthBanner(code: string | undefined) {
   if (!code) return null;
-  if (code === "ok") {
-    return (
-      <div className="w-full max-w-2xl rounded-xl border border-emerald-400/30 bg-emerald-950/30 px-4 py-3 text-center font-mono text-xs uppercase tracking-[0.22em] text-emerald-100/95">
-        Discord linked. Open the bot and send a DM. Your context is already loaded.
-      </div>
-    );
-  }
+  /** Success copy lives in `TakeInFlow` (right column) so it stays with the install / QR context. */
+  if (code === "ok") return null;
   const msg =
     code === "denied"
       ? "Authorization was canceled. You can try again from the QR step."

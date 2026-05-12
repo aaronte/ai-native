@@ -15,7 +15,7 @@ When eng and design also use AI, **decision latency** becomes the constraint. PM
 
 **Definition of Ready**: Before kicking off, align on **problem, target user, success metric, guardrails (perf, compliance), and launch tier**. Missing any item invites **rounds of AI-generated rework**.
 
-**Rituals**: Keep **weekly triad time** (PM/Eng/Design) sacred—short, decision-oriented. Replace status theater with **shared board hygiene**: blocked columns, WIP limits, explicit owners. Use **Loom** for complex walkthroughs; **transcript → ticket bullets**.
+**Rituals**: Keep **weekly triad time** sacred only for decisions. Replace status theater with **shared board hygiene** and bot-generated briefs from blocked columns, WIP limits, PRs, design changes, and customer signals. Use **Loom** for complex walkthroughs; **AI summary + transcript → ticket bullets, owners, and acceptance criteria**.
 
 **Async norms**: Default response SLAs by severity—**P0 same hour**, **P1 same day**. Use **structured threads** (“Decision needed: A vs B by Thu”). Avoid @channel pings without **summary + link**.
 

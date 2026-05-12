@@ -8,12 +8,14 @@ import {
   requireOpenRouter,
 } from "@/lib/llm/openrouter";
 import * as schema from "@/lib/db/schema";
+import { buildKpiPriorityBlock } from "@/lib/coach/kpiPriority";
 import {
   buildInjectedSkillsBody,
   buildSkillIndex,
   buildSystemPrompt,
 } from "@/lib/prompts/system";
 import { loadAllSkills, skillsBySlug } from "@/lib/skills/loader";
+import { mergeAutomationLeanSlugs } from "@/lib/skills/router";
 import type { Skill } from "@/lib/skills/types";
 
 export type CoachDb = PostgresJsDatabase<typeof schema>;
@@ -103,15 +105,22 @@ export async function runCoachTurn(params: {
   );
   const tail = convo.slice(-20);
 
-  const slugs = session.relevantSkillSlugs ?? [];
+  const rawSlugs = session.relevantSkillSlugs ?? [];
+  const slugs = mergeAutomationLeanSlugs(rawSlugs, 6);
   const allSkills = loadAllSkills();
   const explicitSlugs = findExplicitSkillReferences(trimmed, allSkills);
   const injected = resolveInjectedSkills([...new Set([...slugs, ...explicitSlugs])]);
+
+  const kpiPriorityBlock = buildKpiPriorityBlock({
+    problem: session.problem,
+    skillSlugs: slugs,
+  });
 
   let system = buildSystemPrompt({
     skillIndex: buildSkillIndex(allSkills),
     injectedSkills: buildInjectedSkillsBody(injected),
     seededProblem: session.problem,
+    kpiPriorityBlock,
   });
   if (summaryText) {
     system += `\n\n## Running conversation summary\n${summaryText}`;

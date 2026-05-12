@@ -21,4 +21,4 @@ AI-native teams often see **spikey throughput**: sudden bursts and unexpected re
 
 **Outcomes over output**: Tie epics to **measurable behavior change**. If engineering ships fast but adoption flatlines, **slow feature adds** and invest in onboarding or pricing. Velocity without impact is a **strategy failure**, not an eng failure.
 
-**Stakeholder rhythm**: Monthly **exec snapshot**: three shipped outcomes, two learnings, one risk. Avoid death-by-roadmap-review slides; **link to live dashboards**.
+**Stakeholder rhythm**: Monthly **exec snapshot** should be generated from shipped outcomes, analytics, customer signals, and unresolved risks, then edited by the PM/lead. Avoid death-by-roadmap-review slides; share a Loom with AI summary and **link to live dashboards**.

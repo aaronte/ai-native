@@ -10,7 +10,7 @@ export function InstallQR({
   return (
     <div className="flex flex-col items-center gap-4 rounded-2xl border border-white/20 bg-white/[0.02] p-6 shadow-none backdrop-blur-sm">
       <p className="max-w-sm text-balance text-center text-sm leading-relaxed text-slate-400">
-        We&apos;ve heard you! Now let&apos;s meet where you work. Scan the QR code or click the installation link to continue.
+        We&apos;ve heard you! Now let&apos;s meet where you work (In this demo&apos;s case, Discord). Scan the QR code or click the installation link to continue.
       </p>
       <div className="install-qr-reveal rounded-lg bg-indigo-100 p-3">
         <QRCodeSVG className="block" value={installUrl} size={196} level="M" />

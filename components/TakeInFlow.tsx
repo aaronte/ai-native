@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { MIN_FIRST_MESSAGE_CHARS } from "@/lib/coach/constants";
 
+import { DiscordLinkedBanner } from "./DiscordLinkedBanner";
 import { InstallQR } from "./InstallQR";
 
 /** Stub URL for `?intakePreview=qr` — valid shape for QR rendering; not a real OAuth client. */
@@ -18,6 +19,7 @@ export function TakeInFlow() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const previewQr = searchParams.get("intakePreview") === "qr";
+  const discordOAuthOk = searchParams.get("discord_oauth") === "ok";
 
   const [phase, setPhase] = useState<Phase>("form");
   const [nameAndTitle, setNameAndTitle] = useState("");
@@ -65,6 +67,17 @@ export function TakeInFlow() {
 
   const installUrl = previewQr ? PREVIEW_QR_INSTALL_URL : authorizeUrl;
   const showQrStep = Boolean(installUrl && (previewQr || phase === "qr"));
+
+  if (discordOAuthOk) {
+    return (
+      <div className="flex w-full max-w-md flex-col gap-4">
+        <DiscordLinkedBanner />
+        <p className="text-center text-xs leading-relaxed text-slate-500">
+          You can close this page and continue in Discord when you&apos;re ready.
+        </p>
+      </div>
+    );
+  }
 
   if (showQrStep && installUrl) {
     return (
