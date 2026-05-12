@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { MIN_FIRST_MESSAGE_CHARS } from "@/lib/coach/constants";
@@ -33,6 +33,20 @@ export function TakeInFlow() {
   const situationRemaining = Math.max(0, MIN_FIRST_MESSAGE_CHARS - situationCount);
 
   const canSubmit = useMemo(() => situationOk && !pending, [situationOk, pending]);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== "Enter" || !(e.metaKey || e.ctrlKey)) return;
+      const form = formRef.current;
+      if (!form || !form.contains(document.activeElement)) return;
+      if (!situationOk || pending) return;
+      e.preventDefault();
+      form.requestSubmit();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [situationOk, pending]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -110,8 +124,11 @@ export function TakeInFlow() {
     );
   }
 
+  const showShortcutHint = situationOk && !pending;
+
   return (
     <form
+      ref={formRef}
       onSubmit={onSubmit}
       className="flex h-full min-h-0 w-full max-w-md flex-col gap-5 rounded-xl border border-white/20 bg-white/[0.02] p-6 text-left text-sm text-slate-200 shadow-none backdrop-blur-sm"
     >
@@ -155,13 +172,29 @@ export function TakeInFlow() {
       <button
         type="submit"
         disabled={!canSubmit}
-        className="mt-auto inline-flex shrink-0 items-center justify-center rounded-lg bg-indigo-200 px-5 py-3 font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-950 transition-[box-shadow,background-color] duration-300 hover:bg-white enabled:shadow-[0_0_28px_-6px_rgba(165,180,252,0.85),0_0_56px_-16px_rgba(99,102,241,0.35)] enabled:hover:shadow-[0_0_36px_-4px_rgba(226,232,255,0.9),0_0_64px_-12px_rgba(129,140,248,0.45)] disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-500 disabled:shadow-none"
+        title={showShortcutHint ? "Continue (⌘ Enter or Ctrl Enter)" : undefined}
+        className={`mt-auto inline-flex shrink-0 items-center rounded-lg bg-indigo-200 px-5 py-3 font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-950 transition-[box-shadow,background-color] duration-300 hover:bg-white enabled:shadow-[0_0_28px_-6px_rgba(165,180,252,0.85),0_0_56px_-16px_rgba(99,102,241,0.35)] enabled:hover:shadow-[0_0_36px_-4px_rgba(226,232,255,0.9),0_0_64px_-12px_rgba(129,140,248,0.45)] disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-500 disabled:shadow-none ${showShortcutHint ? "relative w-full justify-center" : "w-full justify-center"}`}
       >
-        {pending
-          ? "Saving..."
-          : situationOk
-            ? "Continue"
-            : `Type ${situationRemaining} more character${situationRemaining === 1 ? "" : "s"}`}
+        {pending ? (
+          "Saving..."
+        ) : situationOk ? (
+          <>
+            <span className="inline-flex items-center justify-center">Continue</span>
+            <span
+              className="pointer-events-none absolute right-5 top-1/2 hidden -translate-y-1/2 items-center gap-1 opacity-85 sm:flex"
+              aria-hidden
+            >
+              <kbd className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded border border-slate-950/25 bg-slate-950/10 px-1 font-sans text-[10px] font-semibold normal-case tracking-normal text-slate-950/90">
+                ⌘
+              </kbd>
+              <kbd className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded border border-slate-950/25 bg-slate-950/10 px-1 font-sans text-[10px] font-semibold normal-case tracking-normal text-slate-950/90">
+                ↵
+              </kbd>
+            </span>
+          </>
+        ) : (
+          `Type ${situationRemaining} more character${situationRemaining === 1 ? "" : "s"}`
+        )}
       </button>
     </form>
   );
