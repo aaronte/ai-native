@@ -2,10 +2,13 @@
   "name": "ai-native",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next start --hostname 0.0.0.0",
     "lint": "eslint",
     "bot": "tsx bot/src/main.ts",
     "db:push": "drizzle-kit push",
@@ -17,6 +20,7 @@
     "@ai-sdk/anthropic": "^3.0.76",
     "ai": "^6.0.177",
     "discord.js": "^14.26.4",
+    "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "gray-matter": "^4.0.3",
     "next": "16.2.6",
@@ -24,6 +28,7 @@
     "qrcode.react": "^4.2.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "tsx": "^4.21.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -31,12 +36,10 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "dotenv": "^17.4.2",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
-    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }

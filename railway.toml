@@ -1,0 +1,15 @@
+# Discord bot service — deploy this repo on Railway with "Deploy from GitHub".
+# Railpack defaults to a Next.js build; we override to only install deps so `tsx`
+# can run the gateway without a full `next build`.
+#
+# Optional (second service): deploy the Next.js web app with Dashboard overrides:
+#   Build: npm ci && npm run build
+#   Start: npm run start
+
+[build]
+buildCommand = "npm ci"
+
+[deploy]
+startCommand = "npm run bot"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10

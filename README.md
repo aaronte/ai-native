@@ -1,7 +1,7 @@
 # AI-native executive coach (Discord + web)
 
 Tech executives describe an org challenge on the web app, install a Discord integration, then get **one-on-one DM coaching** grounded in ~20 playbooks (product, engineering, design, org change).  
-**Stack:** Next.js (Vercel) · Supabase Postgres + Drizzle · Anthropic Claude · `discord.js` gateway (Railway/Fly/Render).
+**Stack:** Next.js (Vercel or Railway) · Supabase Postgres + Drizzle · Anthropic Claude · `discord.js` gateway on **Railway**.
 
 ## Monorepo layout
 
@@ -12,6 +12,7 @@ Tech executives describe an org challenge on the web app, install a Discord inte
 | `lib/` | DB client, skills loader + router, prompts, coach + memory compression |
 | `content/skills/` | Markdown playbooks (frontmatter + body) |
 | `scripts/register-commands.ts` | Registers global slash commands |
+| [`railway.toml`](railway.toml) | **Discord bot** on Railway — install-only build, `npm run bot` start |
 
 ## Prerequisites
 
@@ -45,7 +46,7 @@ npm run db:push
 4. **Installation**: prefer **User Install** so individuals authorize without a server.  
 5. **Discord Provided Install Link** scopes used in code: `identify`, `applications.commands`.  
 6. **Interactions Endpoint URL:** leave **blank** — slash commands are handled on the **gateway** via `INTERACTION_CREATE`.  
-7. (Optional) Set `DISCORD_BOT_USER_ID` on Vercel for a direct “open DM” link on `/installed` (Developer Mode → right‑click bot → Copy User ID).  
+7. (Optional) Set `DISCORD_BOT_USER_ID` on your **web** host (Vercel or Railway) for a direct “open DM” link on `/installed` (Developer Mode → right‑click bot → Copy User ID).  
 8. Register slash commands **once** after deploy:
 
 ```bash
@@ -58,17 +59,17 @@ Global commands may take up to an hour to propagate everywhere.
 
 See [`.env.example`](.env.example). Minimum:
 
-**Vercel (web)**
+**Web host (Vercel or Railway)**
 
 - `APP_URL` – public site origin, no trailing slash  
 - `DATABASE_URL` – Supabase pooler  
 - `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`  
 - `DISCORD_BOT_USER_ID` (optional, for deeplink)  
 
-**Bot host (Railway / Fly / Render)**
+**Bot on Railway**
 
-- `APP_URL`  
-- `DATABASE_URL`  
+- `APP_URL` – same public URL as the web app  
+- `DATABASE_URL` – Supabase pooler  
 - `DISCORD_BOT_TOKEN`  
 - `ANTHROPIC_API_KEY`  
 - Optional: `ANTHROPIC_COACH_MODEL` (default `claude-sonnet-4-20250514`)  
@@ -90,9 +91,38 @@ npm run bot
 
 ## 5. Deploy
 
-- **Web:** connect repo to Vercel; set env vars; deploy.  
-- **Bot:** Dockerfile or **Railway/Fly** Node service: start command `npm run bot`, same env as local bot.  
-- Run `npm run register-commands` whenever slash command definitions change.
+### Discord bot on Railway (recommended)
+
+Repo root includes [`railway.toml`](railway.toml): **build** runs `npm ci` only (no `next build`), **start** runs `npm run bot`. That keeps the gateway lean and avoids Railpack auto-picking a Next.js production build for this service.
+
+1. [Railway](https://railway.com/) → **New Project** → **Deploy from GitHub** → select this repo.  
+2. After the first deploy, open the service → **Variables** → add the **Bot on Railway** variables from [§3](#3-environment-variables).  
+3. **Settings → Networking → Generate Domain** if you want a public URL (optional for the bot; DMs only need outbound internet).  
+4. **Settings → Source**  
+   - **Branch:** `main` (or your default).  
+   - **Watch paths** (optional, fewer redeploys): e.g. `bot/`, `lib/`, `content/skills/`, `package.json`, `railway.toml`.  
+5. Every push to the watched branch triggers a **new deploy** automatically (GitHub-connected projects).
+
+`tsx` and `dotenv` live in `dependencies` so Railway’s production install (no devDependencies) can still run `npm run bot`.
+
+### Optional: Next.js web on Railway (second service)
+
+If you want **both** web and bot on Railway instead of Vercel:
+
+1. Add a **second service** from the same repo (or duplicate the repo connection).  
+2. In that service’s **Settings**, override (dashboard overrides `railway.toml` for this service only):  
+   - **Build command:** `npm ci && npm run build`  
+   - **Start command:** `npm run start` (listens on `0.0.0.0`; Railway sets `PORT`).  
+3. Copy the **Web host** variables from [§3](#3-environment-variables) into this service.  
+4. Set `APP_URL` to this service’s **public Railway URL** (or your custom domain).
+
+### Web on Vercel (alternative)
+
+Connect the repo to Vercel, set **Web host** variables, deploy. `APP_URL` should be your Vercel production URL.
+
+### After any deploy
+
+Run `npm run register-commands` when slash command definitions change.
 
 ## Scripts
 
