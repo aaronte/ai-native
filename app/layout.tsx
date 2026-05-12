@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI-native coach",
+  title: "AI-native defaults for teams",
   description:
-    "Executive coach for AI-native product, engineering, and design — via Discord.",
+    "A Discord-first coach for leaders changing how product, engineering, and design work in the AI-native era.",
 };
 
 export default function RootLayout({

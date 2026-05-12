@@ -9,8 +9,7 @@ import { sessions } from "@/lib/db/schema";
 import { pickTopSkillSlugs } from "@/lib/skills/router";
 
 const intakeSchema = z.object({
-  organization: z.string().max(240).optional(),
-  role: z.string().max(240).optional(),
+  nameAndTitle: z.string().max(320).optional(),
   situation: z
     .string()
     .min(MIN_FIRST_MESSAGE_CHARS)
@@ -19,10 +18,8 @@ const intakeSchema = z.object({
 
 function buildProblemText(input: z.infer<typeof intakeSchema>): string {
   const lines: string[] = [];
-  const org = input.organization?.trim();
-  const role = input.role?.trim();
-  if (org) lines.push(`Organization: ${org}`);
-  if (role) lines.push(`Role: ${role}`);
+  const who = input.nameAndTitle?.trim();
+  if (who) lines.push(`Name, job title: ${who}`);
   if (lines.length) lines.push("");
   lines.push(input.situation.trim());
   return lines.join("\n");

@@ -10,8 +10,7 @@ type Phase = "form" | "qr";
 
 export function TakeInFlow() {
   const [phase, setPhase] = useState<Phase>("form");
-  const [organization, setOrganization] = useState("");
-  const [role, setRole] = useState("");
+  const [nameAndTitle, setNameAndTitle] = useState("");
   const [situation, setSituation] = useState("");
   const [authorizeUrl, setAuthorizeUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -19,6 +18,7 @@ export function TakeInFlow() {
 
   const situationCount = situation.trim().length;
   const situationOk = situationCount >= MIN_FIRST_MESSAGE_CHARS;
+  const situationRemaining = Math.max(0, MIN_FIRST_MESSAGE_CHARS - situationCount);
 
   const canSubmit = useMemo(() => situationOk && !pending, [situationOk, pending]);
 
@@ -31,8 +31,7 @@ export function TakeInFlow() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          organization: organization.trim() || undefined,
-          role: role.trim() || undefined,
+          nameAndTitle: nameAndTitle.trim() || undefined,
           situation: situation.trim(),
         }),
       });
@@ -57,10 +56,10 @@ export function TakeInFlow() {
   if (phase === "qr" && authorizeUrl) {
     return (
       <div className="flex w-full max-w-md flex-col gap-6">
-        <div className="rounded-xl border border-emerald-900/50 bg-emerald-950/25 px-4 py-3 text-center text-sm text-emerald-100/90">
+        <div className="rounded-xl border border-emerald-400/25 bg-emerald-950/25 px-4 py-3 text-center text-sm text-emerald-100/90">
           Your context is saved. Scan the code (or tap the link) to{" "}
           <strong className="text-emerald-50">install the coach on your Discord account</strong>
-          — then open a DM with the bot to continue.
+          {" "}and open a DM with the bot to continue.
         </div>
         <InstallQR installUrl={authorizeUrl} />
         <button
@@ -69,7 +68,7 @@ export function TakeInFlow() {
             setPhase("form");
             setAuthorizeUrl(null);
           }}
-          className="text-center text-sm text-zinc-500 underline-offset-4 hover:text-zinc-400 hover:underline"
+          className="text-center font-mono text-xs uppercase tracking-[0.22em] text-slate-500 underline-offset-4 hover:text-slate-300 hover:underline"
         >
           Edit intake and regenerate QR
         </button>
@@ -80,40 +79,26 @@ export function TakeInFlow() {
   return (
     <form
       onSubmit={onSubmit}
-      className="flex w-full max-w-md flex-col gap-5 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 text-left text-sm text-zinc-300"
+      className="flex h-full min-h-0 w-full max-w-md flex-col gap-5 rounded-xl border border-white/20 bg-white/[0.02] p-6 text-left text-sm text-slate-200 shadow-none backdrop-blur-sm"
     >
-      <div className="space-y-1.5">
-        <label htmlFor="organization" className="block text-xs font-medium text-zinc-400">
-          Organization <span className="font-normal text-zinc-600">(optional)</span>
+      <div className="shrink-0 space-y-1.5">
+        <label htmlFor="name-job-title" className="block font-mono text-[11px] uppercase tracking-[0.22em] text-slate-400">
+          Name, job title <span className="font-normal text-slate-600">(optional)</span>
         </label>
         <input
-          id="organization"
-          name="organization"
-          value={organization}
-          onChange={(e) => setOrganization(e.target.value)}
-          className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-100 outline-none ring-emerald-500/40 placeholder:text-zinc-600 focus:border-emerald-700 focus:ring-2"
-          placeholder="Company or team name"
-          autoComplete="organization"
+          id="name-job-title"
+          name="nameAndTitle"
+          value={nameAndTitle}
+          onChange={(e) => setNameAndTitle(e.target.value)}
+          className="w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-slate-100 outline-none ring-cyan-300/20 backdrop-blur-[2px] placeholder:text-slate-400 focus:border-cyan-300/55 focus:ring-2"
+          placeholder="Jane Doe, VP Engineering"
+          autoComplete="name"
+          autoFocus
         />
       </div>
 
-      <div className="space-y-1.5">
-        <label htmlFor="role" className="block text-xs font-medium text-zinc-400">
-          Your role <span className="font-normal text-zinc-600">(optional)</span>
-        </label>
-        <input
-          id="role"
-          name="role"
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-          className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-100 outline-none ring-emerald-500/40 placeholder:text-zinc-600 focus:border-emerald-700 focus:ring-2"
-          placeholder="e.g. VP Engineering, Founder"
-          autoComplete="organization-title"
-        />
-      </div>
-
-      <div className="space-y-1.5">
-        <label htmlFor="situation" className="block text-xs font-medium text-zinc-400">
+      <div className="flex min-h-0 flex-1 flex-col gap-1.5">
+        <label htmlFor="situation" className="shrink-0 font-mono text-[11px] uppercase tracking-[0.22em] text-slate-400">
           What&apos;s going on?
         </label>
         <textarea
@@ -122,17 +107,13 @@ export function TakeInFlow() {
           required
           value={situation}
           onChange={(e) => setSituation(e.target.value)}
-          rows={6}
-          className="w-full resize-y rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-100 outline-none ring-emerald-500/40 placeholder:text-zinc-600 focus:border-emerald-700 focus:ring-2"
-          placeholder="Describe the challenge, constraints, and what you want to get unstuck on — product, engineering, or design."
+          className="min-h-[6rem] w-full flex-1 resize-y rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-slate-100 outline-none ring-cyan-300/20 backdrop-blur-[2px] placeholder:text-slate-400 focus:border-cyan-300/55 focus:ring-2"
+          placeholder="Describe the challenge, constraints, and what you want to get unstuck on (product, engineering, or design). When you continue, your AI coach keeps helping you where work already happens; for this demo, that's Discord."
         />
-        <p className="text-xs text-zinc-500">
-          {situationCount} / {MIN_FIRST_MESSAGE_CHARS}+ characters (minimum for a useful coaching thread)
-        </p>
       </div>
 
       {error ? (
-        <p className="rounded-lg border border-red-900/60 bg-red-950/40 px-3 py-2 text-xs text-red-200">
+        <p className="shrink-0 rounded-lg border border-red-400/30 bg-red-950/40 px-3 py-2 text-xs text-red-200">
           {error}
         </p>
       ) : null}
@@ -140,9 +121,13 @@ export function TakeInFlow() {
       <button
         type="submit"
         disabled={!canSubmit}
-        className="mt-1 inline-flex items-center justify-center rounded-lg bg-emerald-600 px-5 py-3 text-sm font-medium text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-500"
+        className="mt-auto inline-flex shrink-0 items-center justify-center rounded-lg bg-indigo-200 px-5 py-3 font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-950 transition-[box-shadow,background-color] duration-300 hover:bg-white enabled:shadow-[0_0_28px_-6px_rgba(165,180,252,0.85),0_0_56px_-16px_rgba(99,102,241,0.35)] enabled:hover:shadow-[0_0_36px_-4px_rgba(226,232,255,0.9),0_0_64px_-12px_rgba(129,140,248,0.45)] disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-500 disabled:shadow-none"
       >
-        {pending ? "Saving…" : "Continue — show install QR"}
+        {pending
+          ? "Saving..."
+          : situationOk
+            ? "Continue"
+            : `Type ${situationRemaining} more character${situationRemaining === 1 ? "" : "s"}`}
       </button>
     </form>
   );
