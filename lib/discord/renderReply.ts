@@ -66,7 +66,39 @@ function extractSectionLine(text: string, label: string): string | null {
   return match?.[1] ? stripMarkdown(match[1]) : null;
 }
 
-function renderSnapshotEmbed(reply: string): DiscordReplyPayload | null {
+/** Discord embed description max length */
+const EMBED_DESCRIPTION_MAX = 4096;
+
+function clampEmbedDescription(text: string): string {
+  const t = text.trim();
+  if (t.length <= EMBED_DESCRIPTION_MAX) return t;
+  return `${t.slice(0, EMBED_DESCRIPTION_MAX - 1).trimEnd()}…`;
+}
+
+/**
+ * The model often uses discipline-specific pillars (e.g. Planning) instead of the five
+ * canonical KPI labels. Pull a short headline for the embed when line-based extraction misses.
+ */
+function extractSnapshotScoreHeadline(text: string): string | null {
+  const fromStructured =
+    extractLineValue(text, "AI-Native Development Score") ??
+    extractSectionLine(text, "AI-Native Development Score");
+  if (fromStructured && !/^week of\b/i.test(fromStructured)) {
+    return fromStructured.length > 280 ? `${fromStructured.slice(0, 277)}…` : fromStructured;
+  }
+
+  const overall = text.match(
+    /Overall\s*[:\-–]\s*[\d.]+\s*\/\s*\d+[^\n]*/i,
+  );
+  if (overall?.[0]) return overall[0]!.trim();
+
+  return null;
+}
+
+function renderSnapshotEmbed(
+  reply: string,
+  formattedReply: string,
+): DiscordReplyPayload | null {
   if (!/AI-Native Development Score/i.test(reply)) {
     return null;
   }
@@ -99,20 +131,36 @@ function renderSnapshotEmbed(reply: string): DiscordReplyPayload | null {
     });
   }
 
-  if (fields.length === 0) {
-    return null;
+  if (fields.length > 0) {
+    const headline =
+      score && !/^week of\b/i.test(score)
+        ? score
+        : extractSnapshotScoreHeadline(reply);
+    return {
+      content: "Here's the snapshot in a Discord-friendly format:",
+      embeds: [
+        {
+          title: "AI-Native Team Snapshot",
+          description: headline
+            ? `AI-Native Development Score: ${headline}`
+            : undefined,
+          color: 0x5865f2,
+          fields: fields.slice(0, 25),
+        },
+      ],
+    };
   }
 
+  const body = clampEmbedDescription(formattedReply);
+  if (!body) return null;
+
   return {
-    content: "Here's the snapshot in a Discord-friendly format:",
+    content: "Here's the snapshot as an embed card:",
     embeds: [
       {
         title: "AI-Native Team Snapshot",
-        description: score
-          ? `AI-Native Development Score: ${score}`
-          : undefined,
+        description: body,
         color: 0x5865f2,
-        fields: fields.slice(0, 25),
       },
     ],
   };
@@ -214,12 +262,13 @@ function formatMarkdownTables(text: string): string {
 }
 
 export function renderDiscordReplies(reply: string): DiscordReplyPayload[] {
-  const snapshot = renderSnapshotEmbed(reply);
+  const formatted = formatMarkdownTables(reply);
+  const snapshot = renderSnapshotEmbed(reply, formatted);
   if (snapshot) {
     return [snapshot];
   }
 
-  return chunkDiscordMessage(formatMarkdownTables(reply)).map((content) => ({
+  return chunkDiscordMessage(formatted).map((content) => ({
     content,
   }));
 }
