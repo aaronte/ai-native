@@ -1,14 +1,24 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { MIN_FIRST_MESSAGE_CHARS } from "@/lib/coach/constants";
 
 import { InstallQR } from "./InstallQR";
 
+/** Stub URL for `?intakePreview=qr` — valid shape for QR rendering; not a real OAuth client. */
+const PREVIEW_QR_INSTALL_URL =
+  "https://discord.com/oauth2/authorize?client_id=000000000000000000&redirect_uri=https%3A%2F%2Flocalhost%2Fcallback&response_type=code&scope=identify";
+
 type Phase = "form" | "qr";
 
 export function TakeInFlow() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const previewQr = searchParams.get("intakePreview") === "qr";
+
   const [phase, setPhase] = useState<Phase>("form");
   const [nameAndTitle, setNameAndTitle] = useState("");
   const [situation, setSituation] = useState("");
@@ -53,24 +63,35 @@ export function TakeInFlow() {
     }
   }
 
-  if (phase === "qr" && authorizeUrl) {
+  const installUrl = previewQr ? PREVIEW_QR_INSTALL_URL : authorizeUrl;
+  const showQrStep = Boolean(installUrl && (previewQr || phase === "qr"));
+
+  if (showQrStep && installUrl) {
     return (
       <div className="flex w-full max-w-md flex-col gap-6">
-        <div className="rounded-xl border border-emerald-400/25 bg-emerald-950/25 px-4 py-3 text-center text-sm text-emerald-100/90">
-          Your context is saved. Scan the code (or tap the link) to{" "}
-          <strong className="text-emerald-50">install the coach on your Discord account</strong>
-          {" "}and open a DM with the bot to continue.
-        </div>
-        <InstallQR installUrl={authorizeUrl} />
+        {previewQr ? (
+          <p className="rounded-lg border border-amber-400/25 bg-amber-950/25 px-3 py-2 text-center text-xs leading-relaxed text-amber-100/90">
+            Design preview — post-submit UI (<span className="font-mono text-[11px] text-amber-50">intakePreview=qr</span>). The QR
+            and install link use a stub.
+          </p>
+        ) : null}
+        <InstallQR installUrl={installUrl} />
         <button
           type="button"
           onClick={() => {
+            if (previewQr) {
+              const next = new URLSearchParams(searchParams.toString());
+              next.delete("intakePreview");
+              const qs = next.toString();
+              router.replace(qs ? `${pathname}?${qs}` : pathname);
+              return;
+            }
             setPhase("form");
             setAuthorizeUrl(null);
           }}
           className="text-center font-mono text-xs uppercase tracking-[0.22em] text-slate-500 underline-offset-4 hover:text-slate-300 hover:underline"
         >
-          Edit intake and regenerate QR
+          {previewQr ? "Exit preview (remove URL flag)" : "Edit intake and regenerate QR"}
         </button>
       </div>
     );

@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import { HeroBackdrop } from "@/components/HeroBackdrop";
 import { TakeInFlow } from "@/components/TakeInFlow";
 
@@ -108,7 +110,16 @@ export default async function HomePage({
                 </div>
 
                 <div className="flex min-h-0 h-full flex-col min-[420px]:min-h-0">
-                  <TakeInFlow />
+                  <Suspense
+                    fallback={
+                      <div
+                        className="h-full min-h-[min(50vh,18rem)] w-full max-w-md animate-pulse rounded-xl border border-white/15 bg-white/[0.02]"
+                        aria-hidden
+                      />
+                    }
+                  >
+                    <TakeInFlow />
+                  </Suspense>
                 </div>
               </div>
             </div>
