@@ -1,4 +1,8 @@
-import "dotenv/config";
+import { config as loadEnv } from "dotenv";
+
+/** Match Next.js: secrets live in `.env.local`; fall back to `.env`. */
+loadEnv({ path: ".env" });
+loadEnv({ path: ".env.local", override: true });
 
 import {
   ChannelType,
@@ -6,9 +10,14 @@ import {
   Events,
   GatewayIntentBits,
   Partials,
+  PermissionFlagsBits,
 } from "discord.js";
 import { eq } from "drizzle-orm";
 
+import {
+  MIN_FIRST_MESSAGE_CHARS,
+  resolveSessionForDm,
+} from "../../lib/coach/botSession";
 import { maybeCompressHistory } from "../../lib/coach/memory";
 import { runCoachTurn } from "../../lib/coach/runTurn";
 import { chunkDiscordMessage } from "../../lib/discord/chunk";
@@ -16,12 +25,12 @@ import { getBotDb } from "../../lib/db/client";
 import { messages, sessions } from "../../lib/db/schema";
 import { skillsBySlug } from "../../lib/skills/loader";
 
-const appUrl = process.env.APP_URL?.replace(/\/$/, "") ?? "http://localhost:8888";
-
 const client = new Client({
   intents: [
     GatewayIntentBits.DirectMessages,
     GatewayIntentBits.MessageContent,
+    /** Needed so we can post a short “thanks for adding me” when installed to a server. */
+    GatewayIntentBits.Guilds,
   ],
   partials: [Partials.Channel],
 });
@@ -48,6 +57,35 @@ client.once(Events.ClientReady, (c) => {
   console.log(`Ready as ${c.user.tag}`);
 });
 
+/** One hello in the server’s system/default channel when the bot is added to a guild (optional install path). */
+client.on(Events.GuildCreate, async (guild) => {
+  try {
+    const me = guild.members.me ?? (await guild.members.fetchMe());
+    const textChannels = guild.channels.cache.filter(
+      (channel) => channel.type === ChannelType.GuildText,
+    );
+    const channel =
+      guild.systemChannel && textChannels.has(guild.systemChannel.id)
+        ? guild.systemChannel
+        : textChannels.find((candidate) =>
+            candidate.permissionsFor(me)?.has(PermissionFlagsBits.SendMessages),
+          );
+
+    if (!channel?.permissionsFor(me)?.has(PermissionFlagsBits.SendMessages)) {
+      return;
+    }
+
+    const tag = guild.client.user?.username ?? "the coach";
+    await channel.send({
+      content:
+        `Thanks for adding **${tag}** — coaching happens in **DM**: open your inbox with this bot and send what you’re working through (your web intake is linked if you used the QR flow).\n` +
+        `Use **/skills** or **/reset** anytime after we’ve started.`,
+    });
+  } catch (e) {
+    console.error("guild install welcome message failed", e);
+  }
+});
+
 client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
@@ -63,7 +101,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     if (!session) {
       await interaction.reply({
-        content: `No session linked yet. Describe your situation on **${appUrl}** and complete Discord install first.`,
+        content: `No coach session yet. DM me a short description of your org challenge (**at least ${MIN_FIRST_MESSAGE_CHARS} characters**) to start.`,
         ephemeral: true,
       });
       return;
@@ -94,7 +132,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     if (!session) {
       await interaction.reply({
-        content: `No session linked yet. Start at **${appUrl}**.`,
+        content: `Nothing to reset yet. DM me first with your situation (**${MIN_FIRST_MESSAGE_CHARS}+** characters) to start a session.`,
         ephemeral: true,
       });
       return;
@@ -118,21 +156,23 @@ client.on(Events.MessageCreate, (message) => {
 
   enqueue(message.author.id, async () => {
     const db = getBotDb();
-    const [session] = await db
-      .select()
-      .from(sessions)
-      .where(eq(sessions.discordUserId, message.author.id))
-      .limit(1);
+    const resolved = await resolveSessionForDm(
+      db,
+      message.author.id,
+      text,
+    );
 
-    if (!session) {
+    if (!resolved.ok) {
       await message.reply(
-        `Hi — I don’t have a session for your Discord account yet. Open **${appUrl}**, describe your team challenge, and complete the install flow. Then DM me again here.`,
+        `Hi — kick off by sending **one message** with the team or org challenge you’re working through (at least **${resolved.minChars}** characters). I’ll use that to load the right playbooks and reply as your coach.`,
       );
       return;
     }
 
+    const { sessionId } = resolved;
+
     try {
-      await maybeCompressHistory(db, session.id);
+      await maybeCompressHistory(db, sessionId);
     } catch (e) {
       console.error("memory compression failed", e);
     }
@@ -149,7 +189,7 @@ client.on(Events.MessageCreate, (message) => {
     try {
       const { reply } = await runCoachTurn({
         db,
-        sessionId: session.id,
+        sessionId,
         discordUserId: message.author.id,
         userContent: text,
       });
